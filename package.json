@@ -1,0 +1,94 @@
+{
+  "name": "@jacobbubu/md-zh-format",
+  "version": "0.1.0",
+  "description": "Prettify Markdown content for Chinese-English mixed typography",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jacobbubu/md-zh-format.git"
+  },
+  "bugs": {
+    "url": "https://github.com/jacobbubu/md-zh-format/issues"
+  },
+  "homepage": "https://github.com/jacobbubu/md-zh-format#readme",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "bin": {
+    "md-zh-format": "dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "postbuild": "node scripts/ensure-cli-executable.mjs",
+    "clean": "rm -rf dist",
+    "prepack": "npm run clean && npm run build",
+    "prepare": "husky",
+    "dev": "tsx src/cli.ts",
+    "test": "tsx --test tests/**/*.test.ts tests/*.test.ts",
+    "test:prettify": "tsx --test tests/prettify/chs-eng-layout.test.ts",
+    "test:cli": "tsx --test tests/cli.test.ts",
+    "verify:skill": "node scripts/verify-skill.mjs",
+    "verify:skill:claude": "node scripts/verify-skill-claude.mjs",
+    "verify:all": "npm run test && npm run verify:skill",
+    "verify:all:claude": "npm run verify:all && npm run verify:skill:claude",
+    "example:api": "tsx examples/basic/api.ts",
+    "example:cli": "tsx src/cli.ts examples/basic/input.md",
+    "format": "prettier --write \"**/*.{ts,js,mjs,cjs,json,md,yml,yaml}\"",
+    "format:check": "prettier --check \"**/*.{ts,js,mjs,cjs,json,md,yml,yaml}\"",
+    "format:staged": "lint-staged",
+    "commitlint": "commitlint --from HEAD~1 --to HEAD --verbose",
+    "release": "semantic-release",
+    "release:dry-run": "semantic-release --dry-run --no-ci"
+  },
+  "keywords": [
+    "markdown",
+    "chinese",
+    "cjk",
+    "format",
+    "prettify",
+    "typography"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "prettier": "^3.6.2",
+    "remark-parse": "^11.0.0",
+    "unified": "^11.0.5"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^20.1.0",
+    "@commitlint/config-conventional": "^20.0.0",
+    "@semantic-release/changelog": "^6.0.3",
+    "@semantic-release/commit-analyzer": "^13.0.1",
+    "@semantic-release/git": "^10.0.1",
+    "@semantic-release/github": "^11.0.6",
+    "@semantic-release/npm": "^12.0.2",
+    "@semantic-release/release-notes-generator": "^14.1.0",
+    "@types/node": "^25.2.3",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.6",
+    "semantic-release": "^24.2.8",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
+  },
+  "lint-staged": {
+    "*.{ts,js,mjs,cjs,json,md,yml,yaml}": [
+      "prettier --write"
+    ]
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

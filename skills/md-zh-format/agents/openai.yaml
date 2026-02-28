@@ -1,0 +1,4 @@
+interface:
+  display_name: "MD Zh Format"
+  short_description: "Format Chinese-English Markdown via md-zh-format CLI"
+  default_prompt: "Use $md-zh-format to format Markdown files with the project CLI and summarize changes."
