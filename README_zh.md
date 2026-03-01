@@ -289,10 +289,14 @@ npm run release:dry-run
 
 - npm 包已在 `@jacobbubu/md-zh-format` 下创建。
 - GitHub 仓库地址为 `https://github.com/jacobbubu/md-zh-format.git`。
-- CI 中配置 npm 鉴权：
-  - 推荐：npm trusted publishing（OIDC）
-  - 备选：在 GitHub Secrets 设置 `NPM_TOKEN`
+- 在 npm 包设置中配置 Trusted Publisher（OIDC）：
+  - provider：GitHub Actions
+  - repository：`jacobbubu/md-zh-format`
+  - workflow：`.github/workflows/release.yml`
+  - branch/tag filter：`main`
+- 保持 [release.yml](.github/workflows/release.yml) 中 `id-token: write` 权限开启。
 - `GITHUB_TOKEN` 由 GitHub Actions 自动提供。
+- 此工作流不再依赖 `NPM_TOKEN`。如果历史上已配置该 secret，建议删除以避免混淆。
 
 配置文件：
 

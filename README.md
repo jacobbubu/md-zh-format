@@ -289,10 +289,14 @@ npm run release:dry-run
 
 - npm package exists under `@jacobbubu/md-zh-format`.
 - GitHub repository URL is `https://github.com/jacobbubu/md-zh-format.git`.
-- Configure npm auth in CI:
-  - preferred: npm trusted publishing (OIDC)
-  - alternative: `NPM_TOKEN` in GitHub repository secrets
+- Configure npm Trusted Publisher (OIDC) in npm package settings:
+  - provider: GitHub Actions
+  - repository: `jacobbubu/md-zh-format`
+  - workflow: `.github/workflows/release.yml`
+  - branch/tag filter: `main`
+- Keep `id-token: write` permission in [release.yml](.github/workflows/release.yml).
 - `GITHUB_TOKEN` is provided by GitHub Actions.
+- `NPM_TOKEN` is not required for this workflow. If it exists from old setup, remove it to avoid confusion.
 
 Configuration files:
 
