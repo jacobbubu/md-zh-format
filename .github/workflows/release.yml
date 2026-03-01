@@ -24,7 +24,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 22.14.0
           cache: npm
           registry-url: https://registry.npmjs.org
 
@@ -36,6 +36,15 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      - name: Verify OIDC context
+        run: |
+          if [ -z "${ACTIONS_ID_TOKEN_REQUEST_URL:-}" ] || [ -z "${ACTIONS_ID_TOKEN_REQUEST_TOKEN:-}" ]; then
+            echo "OIDC token endpoint is unavailable."
+            echo "Ensure this job has permissions.id-token: write and is running in a trusted GitHub Actions context."
+            exit 1
+          fi
+          echo "OIDC context detected."
 
       - name: Release
         env:
