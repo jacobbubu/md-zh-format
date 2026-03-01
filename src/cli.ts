@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import * as fs from "node:fs/promises";
+import { realpathSync } from "node:fs";
 import * as path from "node:path";
 import { createRequire } from "node:module";
 import process from "node:process";
@@ -305,7 +306,28 @@ async function main(): Promise<void> {
   process.exitCode = exitCode;
 }
 
-const invokedPath = process.argv[1] ? path.resolve(process.argv[1]) : "";
-if (invokedPath === fileURLToPath(import.meta.url)) {
+function resolveComparablePath(inputPath: string): string {
+  const absolutePath = path.resolve(inputPath);
+  try {
+    return realpathSync(absolutePath);
+  } catch {
+    return absolutePath;
+  }
+}
+
+export function isMainModule(
+  invokedPath: string | undefined,
+  moduleUrl: string = import.meta.url,
+): boolean {
+  if (!invokedPath) {
+    return false;
+  }
+
+  const modulePath = resolveComparablePath(fileURLToPath(moduleUrl));
+  const argvPath = resolveComparablePath(invokedPath);
+  return modulePath === argvPath;
+}
+
+if (isMainModule(process.argv[1])) {
   void main();
 }

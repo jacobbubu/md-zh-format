@@ -4,7 +4,8 @@ import * as fs from "node:fs/promises";
 import { createRequire } from "node:module";
 import * as os from "node:os";
 import * as path from "node:path";
-import { parseCliArgs, runCli, type CliIo } from "../src/cli.js";
+import { pathToFileURL } from "node:url";
+import { isMainModule, parseCliArgs, runCli, type CliIo } from "../src/cli.js";
 
 const require = createRequire(import.meta.url);
 const packageJson = require("../package.json") as { version?: string };
@@ -159,6 +160,22 @@ test("parse: rejects unknown option", () => {
     () => parseCliArgs(["a.md", "--unknown"]),
     "Unknown option: --unknown",
   );
+});
+
+test("entrypoint: isMainModule returns false when argv[1] is missing", () => {
+  assert.equal(isMainModule(undefined), false);
+});
+
+test("entrypoint: isMainModule handles symlinked bin path", async () => {
+  await withTempDir(async (dir) => {
+    const target = path.join(dir, "cli.js");
+    const link = path.join(dir, "md-zh-format");
+    await fs.writeFile(target, "#!/usr/bin/env node\n", "utf-8");
+    await fs.symlink(target, link);
+
+    const moduleUrl = pathToFileURL(target).href;
+    assert.equal(isMainModule(link, moduleUrl), true);
+  });
 });
 
 test("run:flow: help prints usage and exits 0", async () => {
