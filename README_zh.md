@@ -292,8 +292,9 @@ npm run release:dry-run
 - 在 npm 包设置中配置 Trusted Publisher（OIDC）：
   - provider：GitHub Actions
   - repository：`jacobbubu/md-zh-format`
-  - workflow：`.github/workflows/release.yml`
+  - workflow name：`release.yml`（只填文件名，不要填路径）
   - branch/tag filter：`main`
+  - runner：GitHub-hosted runner
 - 保持 [release.yml](.github/workflows/release.yml) 中 `id-token: write` 权限开启。
 - `GITHUB_TOKEN` 由 GitHub Actions 自动提供。
 - 此工作流不再依赖 `NPM_TOKEN`。如果历史上已配置该 secret，建议删除以避免混淆。
