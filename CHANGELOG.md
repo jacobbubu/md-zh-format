@@ -1,3 +1,11 @@
+## [1.0.1](https://github.com/jacobbubu/md-zh-format/compare/v1.0.0...v1.0.1) (2026-03-01)
+
+### Bug Fixes
+
+- **ci:** support npm trusted publishing with semantic-release v25 ([b2ad5cc](https://github.com/jacobbubu/md-zh-format/commit/b2ad5cc0f2e40b8609fa79b50e553328ce91788f))
+- **cli:** run entrypoint correctly when invoked via symlink ([1af724f](https://github.com/jacobbubu/md-zh-format/commit/1af724f970009663958a03d504acd0761e74ea24))
+- test oidc trusted publishing ([89deb27](https://github.com/jacobbubu/md-zh-format/commit/89deb2753740b9b66e3623996dfa2a218f1b5904))
+
 ## 1.0.0 (2026-02-28)
 
 ### Features
