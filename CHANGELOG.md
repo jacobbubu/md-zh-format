@@ -1,3 +1,10 @@
+## [1.1.0](https://github.com/jacobbubu/md-zh-format/compare/v1.0.1...v1.1.0) (2026-03-28)
+
+### Features
+
+- **prettify:** normalize paired em dashes ([e868749](https://github.com/jacobbubu/md-zh-format/commit/e868749005216d34cf3f57ae7be917ed70432614))
+- **prettify:** support GFM and repair escaped inline markup ([95fab2f](https://github.com/jacobbubu/md-zh-format/commit/95fab2fc9d53a50c8acc998ec3361cf7b21e84bf))
+
 ## [1.0.1](https://github.com/jacobbubu/md-zh-format/compare/v1.0.0...v1.0.1) (2026-03-01)
 
 ### Bug Fixes
