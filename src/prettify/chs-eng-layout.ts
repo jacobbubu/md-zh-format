@@ -1,7 +1,9 @@
 import { unified } from "unified";
+import remarkGfm from "remark-gfm";
 import remarkParse from "remark-parse";
 
 const HAN_SCRIPT_PATTERN = "\\p{Script=Han}";
+const UNICODE_PUNCTUATION_PATTERN = "\\p{P}";
 const CJK_RE = new RegExp(HAN_SCRIPT_PATTERN, "u");
 const CJK_TO_ALNUM_RE = new RegExp(
   `(${HAN_SCRIPT_PATTERN})([A-Za-z0-9])`,
@@ -44,6 +46,15 @@ const NUMBER_UNIT_NO_SPACE_RE =
 const MARKDOWN_TABLE_ROW_RE = /^\s*\|.*\|\s*$/;
 const TOKEN_RE = /\uE000P(\d+)P\uE001/g;
 const TOKEN_EXISTS_RE = /\uE000P\d+P\uE001/;
+const AST_PROTECTED_NODE_TYPES = new Set([
+  "definition",
+  "footnoteReference",
+  "image",
+  "imageReference",
+  "inlineCode",
+  "link",
+  "linkReference",
+]);
 const INLINE_HTML_PARENT_TYPES = new Set([
   "paragraph",
   "heading",
@@ -69,6 +80,31 @@ interface MarkdownAstNode {
 interface OffsetRange {
   start: number;
   end: number;
+}
+
+function addNodeRange(node: MarkdownAstNode, ranges: OffsetRange[]): void {
+  const start = node.position?.start?.offset;
+  const end = node.position?.end?.offset;
+  if (
+    typeof start === "number" &&
+    Number.isFinite(start) &&
+    typeof end === "number" &&
+    Number.isFinite(end) &&
+    end > start
+  ) {
+    ranges.push({ start, end });
+  }
+}
+
+function parseMarkdownAst(input: string): MarkdownAstNode | undefined {
+  try {
+    return unified()
+      .use(remarkParse)
+      .use(remarkGfm)
+      .parse(input) as unknown as MarkdownAstNode;
+  } catch {
+    return undefined;
+  }
 }
 
 function toGlobalRegex(pattern: RegExp): RegExp {
@@ -97,17 +133,11 @@ function collectHtmlBlockRangesFromAst(
   ranges: OffsetRange[],
 ): void {
   if (node.type === "html" && !INLINE_HTML_PARENT_TYPES.has(parentType ?? "")) {
-    const start = node.position?.start?.offset;
-    const end = node.position?.end?.offset;
-    if (
-      typeof start === "number" &&
-      Number.isFinite(start) &&
-      typeof end === "number" &&
-      Number.isFinite(end) &&
-      end > start
-    ) {
-      ranges.push({ start, end });
-    }
+    addNodeRange(node, ranges);
+  }
+
+  if (AST_PROTECTED_NODE_TYPES.has(node.type ?? "")) {
+    addNodeRange(node, ranges);
   }
 
   if (!Array.isArray(node.children)) {
@@ -116,6 +146,23 @@ function collectHtmlBlockRangesFromAst(
 
   for (const child of node.children) {
     collectHtmlBlockRangesFromAst(child, node.type, ranges);
+  }
+}
+
+function collectTextNodeRanges(
+  node: MarkdownAstNode,
+  ranges: OffsetRange[],
+): void {
+  if (node.type === "text") {
+    addNodeRange(node, ranges);
+  }
+
+  if (!Array.isArray(node.children)) {
+    return;
+  }
+
+  for (const child of node.children) {
+    collectTextNodeRanges(child, ranges);
   }
 }
 
@@ -144,16 +191,14 @@ function mergeOffsetRanges(ranges: OffsetRange[]): OffsetRange[] {
 }
 
 function collectCommonMarkHtmlBlockRanges(input: string): OffsetRange[] {
-  try {
-    const ast = unified()
-      .use(remarkParse)
-      .parse(input) as unknown as MarkdownAstNode;
-    const ranges: OffsetRange[] = [];
-    collectHtmlBlockRangesFromAst(ast, undefined, ranges);
-    return mergeOffsetRanges(ranges);
-  } catch {
+  const ast = parseMarkdownAst(input);
+  if (!ast) {
     return [];
   }
+
+  const ranges: OffsetRange[] = [];
+  collectHtmlBlockRangesFromAst(ast, undefined, ranges);
+  return mergeOffsetRanges(ranges);
 }
 
 function protectByOffsetRanges(
@@ -389,14 +434,132 @@ function restoreProtected(input: string, segments: string[]): string {
   return restored;
 }
 
+function transformByOffsetRanges(
+  input: string,
+  ranges: OffsetRange[],
+  transformer: (segment: string) => string,
+): string {
+  if (ranges.length === 0) {
+    return input;
+  }
+
+  let cursor = 0;
+  let output = "";
+
+  for (const range of ranges) {
+    if (range.start < cursor) {
+      continue;
+    }
+
+    const safeStart = Math.max(0, range.start);
+    const safeEnd = Math.min(input.length, range.end);
+    if (safeEnd <= safeStart) {
+      continue;
+    }
+
+    output += input.slice(cursor, safeStart);
+    output += transformer(input.slice(safeStart, safeEnd));
+    cursor = safeEnd;
+  }
+
+  output += input.slice(cursor);
+  return output;
+}
+
+function replaceUnescapedMatches(
+  input: string,
+  pattern: RegExp,
+  replacer: (match: RegExpExecArray) => string,
+): string {
+  const globalPattern = toGlobalRegex(pattern);
+  let output = "";
+  let lastIndex = 0;
+
+  for (const match of input.matchAll(globalPattern)) {
+    const startIndex = match.index ?? 0;
+    const fullMatch = match[0] ?? "";
+    const endIndex = startIndex + fullMatch.length;
+
+    if (isEscaped(input, startIndex)) {
+      continue;
+    }
+
+    output += input.slice(lastIndex, startIndex);
+    output += replacer(match as RegExpExecArray);
+    lastIndex = endIndex;
+  }
+
+  output += input.slice(lastIndex);
+  return output;
+}
+
+function repairEscapedInlineMarkup(input: string): string {
+  if (TOKEN_EXISTS_RE.test(input)) {
+    return input;
+  }
+
+  let repaired = input;
+
+  repaired = replaceUnescapedMatches(
+    repaired,
+    new RegExp(`(?<!_)__([^_\\n]+?)__(?=${HAN_SCRIPT_PATTERN})`, "gu"),
+    (match) => `<strong>${match[1]}</strong>`,
+  );
+
+  repaired = replaceUnescapedMatches(
+    repaired,
+    new RegExp(
+      `(?<!\\*)\\*\\*([^*\\n]*?${UNICODE_PUNCTUATION_PATTERN})\\*\\*(?=${HAN_SCRIPT_PATTERN})`,
+      "gu",
+    ),
+    (match) => `<strong>${match[1]}</strong>`,
+  );
+
+  repaired = replaceUnescapedMatches(
+    repaired,
+    new RegExp(
+      `(?<!~)~~([^~\\n]*?${UNICODE_PUNCTUATION_PATTERN})~~(?=${HAN_SCRIPT_PATTERN})`,
+      "gu",
+    ),
+    (match) => `<del>${match[1]}</del>`,
+  );
+
+  repaired = replaceUnescapedMatches(
+    repaired,
+    new RegExp(`(?<!_)_([^_\\n]+?)_(?=${HAN_SCRIPT_PATTERN})`, "gu"),
+    (match) => `<em>${match[1]}</em>`,
+  );
+
+  repaired = replaceUnescapedMatches(
+    repaired,
+    new RegExp(
+      `(?<!\\*)\\*([^*\\n]*?${UNICODE_PUNCTUATION_PATTERN})\\*(?=${HAN_SCRIPT_PATTERN})`,
+      "gu",
+    ),
+    (match) => `<em>${match[1]}</em>`,
+  );
+
+  return repaired;
+}
+
+function repairEscapedInlineMarkupByAst(input: string): string {
+  const ast = parseMarkdownAst(input);
+  if (!ast) {
+    return repairEscapedInlineMarkup(input);
+  }
+
+  const ranges: OffsetRange[] = [];
+  collectTextNodeRanges(ast, ranges);
+  return transformByOffsetRanges(input, ranges, repairEscapedInlineMarkup);
+}
+
 function protectMarkdownSensitiveParts(input: string): {
   text: string;
   segments: string[];
 } {
   const segments: string[] = [];
-  let protectedText = input;
+  let protectedText = protectCommonMarkHtmlBlocks(input, segments);
 
-  protectedText = protectCommonMarkHtmlBlocks(protectedText, segments);
   protectedText = protectFencedCodeBlocks(protectedText, segments);
   protectedText = protectIndentedCodeBlocks(protectedText, segments);
   protectedText = protectByRegex(protectedText, segments, /`+[^`\n]*`+/g);
@@ -418,6 +581,7 @@ function protectMarkdownSensitiveParts(input: string): {
     segments,
     /\bhttps?:\/\/[^\s<>()]+/g,
   );
+  protectedText = repairEscapedInlineMarkupByAst(protectedText);
 
   return {
     text: protectedText,

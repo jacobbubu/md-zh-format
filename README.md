@@ -114,15 +114,21 @@ md-zh-format article.md --print-width 100 --prose-wrap always --tab-width 4
 - Chinese-context quotes normalized to `“…”` / `‘…’`.
 - Chinese-context parentheses normalized with the `English term (中文释义)` exception.
 - Extra spaces around punctuation cleaned up.
+- Escaped inline emphasis-like markup is repaired when CommonMark/GFM would reject it before Chinese text:
+  - `_term_处理 -> <em>term</em>处理`
+  - `__term__处理 -> <strong>term</strong>处理`
+  - `**原子签出（atomic checkout）**处理 -> <strong>原子签出（atomic checkout）</strong>处理`
+  - `~~删除线（strike）~~处理 -> <del>删除线（strike）</del>处理`
 
 ## What Is Preserved
 
 - YAML frontmatter block is preserved by default.
+- GFM syntax is supported, including strikethrough, tables, task lists, footnotes, and autolink literals.
 - Markdown-sensitive segments are protected:
   - fenced/indented code blocks
   - inline code
   - links/images
-  - URLs
+  - URLs and GFM autolink literals
   - HTML tags / CommonMark HTML blocks
   - math expressions
 - Markdown hard-break trailing spaces (`  `) are preserved.

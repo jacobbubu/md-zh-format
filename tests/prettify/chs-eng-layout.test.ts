@@ -139,6 +139,92 @@ test("keeps indented code block content untouched", () => {
   assert.equal(output.includes("后续文本在 Azure 中运行。"), true);
 });
 
+test("supports GFM strikethrough while still normalizing mixed-layout text inside", () => {
+  const input = "~~在Azure中部署3台VM~~，然后继续执行。";
+  const output = normalizeChsEngLayout(input);
+  assert.equal(output, "~~在 Azure 中部署 3 台 VM~~，然后继续执行。");
+});
+
+test("supports GFM task list, tables, footnotes, and autolink literals", () => {
+  const input = [
+    "- [x] 在Azure中部署3台VM",
+    "",
+    "| 项目 | 描述 |",
+    "| --- | --- |",
+    "| VM | 在Azure中部署3台VM |",
+    "",
+    "访问 www.example.com 获取信息。",
+    "",
+    "[^1]: 在Azure中部署3台VM",
+  ].join("\n");
+
+  const output = normalizeChsEngLayout(input);
+  assert.equal(output.includes("- [x] 在 Azure 中部署 3 台 VM"), true);
+  assert.equal(output.includes("| VM | 在 Azure 中部署 3 台 VM |"), true);
+  assert.equal(output.includes("www.example.com"), true);
+  assert.equal(output.includes("[^1]: 在 Azure 中部署 3 台 VM"), true);
+});
+
+test("repairs escaped emphasis-like markup before Chinese text for underscore and punctuation-ending spans", () => {
+  const input = [
+    "_术语_处理任务",
+    "__术语__处理任务",
+    "*原子签出（atomic checkout）*处理任务分配",
+    "**原子签出（atomic checkout）**处理任务分配",
+    "~~删除线（strike）~~处理任务",
+  ].join("\n");
+
+  const output = normalizeChsEngLayout(input);
+  assert.equal(output.includes("<em>术语</em>处理任务"), true);
+  assert.equal(output.includes("<strong>术语</strong>处理任务"), true);
+  assert.equal(
+    output.includes("<em>原子签出（atomic checkout）</em>处理任务分配"),
+    true,
+  );
+  assert.equal(
+    output.includes("<strong>原子签出（atomic checkout）</strong>处理任务分配"),
+    true,
+  );
+  assert.equal(output.includes("<del>删除线（strike）</del>处理任务"), true);
+});
+
+test("keeps valid star-delimited emphasis and strong spans when they already parse before Chinese text", () => {
+  const input = ["*术语*处理任务", "**术语**处理任务", "~~术语~~处理任务"].join(
+    "\n",
+  );
+
+  const output = normalizeChsEngLayout(input);
+  assert.equal(output.includes("*术语*处理任务"), true);
+  assert.equal(output.includes("**术语**处理任务"), true);
+  assert.equal(output.includes("~~术语~~处理任务"), true);
+  assert.equal(output.includes("<em>术语</em>处理任务"), false);
+  assert.equal(output.includes("<strong>术语</strong>处理任务"), false);
+  assert.equal(output.includes("<del>术语</del>处理任务"), false);
+});
+
+test("keeps escaped literal emphasis delimiters untouched", () => {
+  const input = String.raw`\**原子签出（atomic checkout）**处理任务`;
+  const output = normalizeChsEngLayout(input);
+  assert.equal(output, String.raw`\**原子签出（atomic checkout）**处理任务`);
+});
+
+test("does not repair across nested emphasis nodes that are already partially parsed", () => {
+  const input = "**原子 *checkout*（atomic checkout）**处理任务";
+  const output = normalizeChsEngLayout(input);
+  assert.equal(output, "**原子 *checkout*（atomic checkout）**处理任务");
+});
+
+test("keeps parser-defined intraword emphasis behavior unchanged", () => {
+  const input = ["*foo*bar", "**foo**bar", "_foo_bar", "__foo__bar"].join("\n");
+  const output = normalizeChsEngLayout(input);
+  assert.equal(output.includes("*foo*bar"), true);
+  assert.equal(output.includes("**foo**bar"), true);
+  assert.equal(output.includes("_foo_bar"), true);
+  assert.equal(output.includes("__foo__bar"), true);
+  assert.equal(output.includes("<em>foo</em>bar"), false);
+  assert.equal(output.includes("<strong>foo</strong>bar"), false);
+});
+
 test("prettify applies layout normalization while preserving frontmatter by default", async () => {
   const input = [
     "---",

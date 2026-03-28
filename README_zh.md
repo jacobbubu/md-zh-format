@@ -114,15 +114,21 @@ md-zh-format article.md --print-width 100 --prose-wrap always --tab-width 4
 - 中文语境引号规范为 `“…”` / `‘…’`。
 - 中文语境括号规范化，并保留 `English term (中文释义)` 例外。
 - 清理标点周围多余空格。
+- 当 CommonMark / GFM 会把强调语法拒绝成普通文本，且后面紧跟中文时，会修复为等价 HTML：
+  - `_term_处理 -> <em>term</em>处理`
+  - `__term__处理 -> <strong>term</strong>处理`
+  - `**原子签出（atomic checkout）**处理 -> <strong>原子签出（atomic checkout）</strong>处理`
+  - `~~删除线（strike）~~处理 -> <del>删除线（strike）</del>处理`
 
 ## 会保留哪些内容
 
 - 默认保留 YAML frontmatter。
+- 正式支持 GFM 语法，包括删除线、表格、任务列表、脚注、自动链接字面量。
 - 受保护的 Markdown 片段不会被混排规则破坏：
   - 围栏/缩进代码块
   - 行内代码
   - 链接/图片
-  - URL
+  - URL 和 GFM 自动链接字面量
   - HTML 标签 / CommonMark HTML 块
   - 数学公式
 - 保留 Markdown 硬换行尾部空格（`  `）。
