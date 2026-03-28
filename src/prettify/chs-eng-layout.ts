@@ -649,6 +649,63 @@ function normalizeMixedSpacing(line: string): string {
   return normalized;
 }
 
+function normalizeEmDash(line: string): string {
+  let output = "";
+  let index = 0;
+
+  while (index < line.length) {
+    const isDoubleEmDash = line[index] === "—" && line[index + 1] === "—";
+    if (!isDoubleEmDash) {
+      output += line[index];
+      index += 1;
+      continue;
+    }
+
+    const isLongerRun = line[index - 1] === "—" || line[index + 2] === "—";
+    if (isLongerRun) {
+      output += line[index];
+      index += 1;
+      continue;
+    }
+
+    let lastNonWhitespaceIndex = output.length - 1;
+    while (
+      lastNonWhitespaceIndex >= 0 &&
+      /\s/.test(output[lastNonWhitespaceIndex] ?? "")
+    ) {
+      lastNonWhitespaceIndex -= 1;
+    }
+
+    if (lastNonWhitespaceIndex >= 0) {
+      output = output.slice(0, lastNonWhitespaceIndex + 1);
+    }
+
+    index += 2;
+    while (index < line.length && /\s/.test(line[index] ?? "")) {
+      index += 1;
+    }
+
+    const hasLeftContent = lastNonWhitespaceIndex >= 0;
+    const hasRightContent = index < line.length;
+    if (hasLeftContent && hasRightContent) {
+      output += " -- ";
+      continue;
+    }
+    if (hasLeftContent) {
+      output += " --";
+      continue;
+    }
+    if (hasRightContent) {
+      output += "-- ";
+      continue;
+    }
+
+    output += "--";
+  }
+
+  return output;
+}
+
 function compressSpaces(line: string): string {
   if (MARKDOWN_TABLE_ROW_RE.test(line)) {
     return line.trimEnd();
@@ -665,6 +722,7 @@ function normalizeLine(line: string): string {
   normalized = normalizeParenthesesInChineseContext(normalized);
   normalized = normalizePunctuationSpacing(normalized);
   normalized = normalizeMixedSpacing(normalized);
+  normalized = normalizeEmDash(normalized);
   normalized = compressSpaces(normalized);
   return normalized;
 }

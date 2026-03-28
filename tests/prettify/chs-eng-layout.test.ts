@@ -32,15 +32,45 @@ test("normalizes parentheses and keeps English-term + Chinese-gloss exception", 
   );
 });
 
+test("normalizes paired em dashes to spaced ASCII double hyphen", () => {
+  const input = [
+    "甲——乙",
+    "甲 —— 乙",
+    "  ——说明",
+    "结论——",
+    "A——B",
+    "——",
+    "———",
+    "————",
+  ].join("\n");
+
+  const output = normalizeChsEngLayout(input);
+  assert.equal(
+    output,
+    [
+      "甲 -- 乙",
+      "甲 -- 乙",
+      "  -- 说明",
+      "结论 --",
+      "A -- B",
+      "--",
+      "———",
+      "————",
+    ].join("\n"),
+  );
+});
+
 test("keeps markdown-sensitive segments untouched", () => {
   const input = [
     "请运行 `kubectl get pods`，然后检查输出。",
     "参考 [RFC9110](https://www.rfc-editor.org/rfc/rfc9110) 了解细节。",
     "链接 https://example.com/a?b=1&c=2 保持原样。",
+    "代码 `甲——乙` 和链接 https://example.com/a——b 不应被改写。",
     '<video src="https://cdn.example.com/a.mp4"></video>',
     "",
     "```js",
     'const x = "中文English42";',
+    'const range = "甲——乙";',
     "```",
   ].join("\n");
 
@@ -51,11 +81,14 @@ test("keeps markdown-sensitive segments untouched", () => {
     true,
   );
   assert.equal(output.includes("https://example.com/a?b=1&c=2"), true);
+  assert.equal(output.includes("`甲——乙`"), true);
+  assert.equal(output.includes("https://example.com/a——b"), true);
   assert.equal(
     output.includes('<video src="https://cdn.example.com/a.mp4"></video>'),
     true,
   );
   assert.equal(output.includes('const x = "中文English42";'), true);
+  assert.equal(output.includes('const range = "甲——乙";'), true);
 });
 
 test("keeps inline and block math expressions untouched", () => {
@@ -151,7 +184,7 @@ test("supports GFM task list, tables, footnotes, and autolink literals", () => {
     "",
     "| 项目 | 描述 |",
     "| --- | --- |",
-    "| VM | 在Azure中部署3台VM |",
+    "| VM | 在Azure中部署3台VM——灰度发布 |",
     "",
     "访问 www.example.com 获取信息。",
     "",
@@ -160,7 +193,10 @@ test("supports GFM task list, tables, footnotes, and autolink literals", () => {
 
   const output = normalizeChsEngLayout(input);
   assert.equal(output.includes("- [x] 在 Azure 中部署 3 台 VM"), true);
-  assert.equal(output.includes("| VM | 在 Azure 中部署 3 台 VM |"), true);
+  assert.equal(
+    output.includes("| VM | 在 Azure 中部署 3 台 VM -- 灰度发布 |"),
+    true,
+  );
   assert.equal(output.includes("www.example.com"), true);
   assert.equal(output.includes("[^1]: 在 Azure 中部署 3 台 VM"), true);
 });
