@@ -112,7 +112,7 @@ md-zh-format article.md --print-width 100 --prose-wrap always --tab-width 4
 - Spaces between numbers and common units (`10Gbps -> 10 Gbps`).
 - `%` and `°` remain attached to numbers (`15 % -> 15%`).
 - Paired em dashes are normalized to spaced ASCII double hyphen (`甲——乙 -> 甲 -- 乙`).
-- Chinese-context quotes normalized to `“…”` / `‘…’`.
+- Chinese-context quotes normalized to `“…”` / `‘…’` (including Taiwan-style `「…」` / `『…』`).
 - Chinese-context parentheses normalized with the `English term (中文释义)` exception.
 - Extra spaces around punctuation cleaned up.
 - Escaped inline emphasis-like markup is repaired when CommonMark/GFM would reject it before Chinese text:

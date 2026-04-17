@@ -22,6 +22,12 @@ test("normalizes Chinese-context quotes and punctuation spacing", () => {
   assert.equal(output, "请点击“Analyze Data”按钮，然后查看‘示例’。");
 });
 
+test("normalizes Taiwan-style corner brackets to curly quotes", () => {
+  const input = "他说「今天」，我回答『好的』。嵌套：「外层『内层』收尾」。";
+  const output = normalizeChsEngLayout(input);
+  assert.equal(output, "他说“今天”，我回答‘好的’。嵌套：“外层‘内层’收尾”。");
+});
+
 test("normalizes parentheses and keeps English-term + Chinese-gloss exception", () => {
   const input =
     "详细见第2章(尤其是2.3节)。字段为store region（州）,store city(城市)。";

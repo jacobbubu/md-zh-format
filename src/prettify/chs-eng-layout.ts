@@ -597,6 +597,8 @@ function normalizeQuotesInChineseContext(line: string): string {
   if (!hasCjk(line)) return line;
 
   let normalized = line;
+  normalized = normalized.replace(/「([^「」\n]*)」/g, "“$1”");
+  normalized = normalized.replace(/『([^『』\n]*)』/g, "‘$1’");
   normalized = normalized.replace(/"([^"\n]+)"/g, "“$1”");
   normalized = normalized.replace(/'([^'\n]+)'/g, "‘$1’");
   normalized = normalized.replace(CJK_TO_OPEN_QUOTE_RE, "$1$2");
