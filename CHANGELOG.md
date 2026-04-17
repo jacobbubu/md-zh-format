@@ -1,3 +1,9 @@
+## [1.2.0](https://github.com/jacobbubu/md-zh-format/compare/v1.1.0...v1.2.0) (2026-04-17)
+
+### Features
+
+- **prettify:** normalize Taiwan-style corner brackets to curly quotes ([09af5f0](https://github.com/jacobbubu/md-zh-format/commit/09af5f0f3bc2f0b2b8ce00d32ebbb4c4f5d38f6c))
+
 ## [1.1.0](https://github.com/jacobbubu/md-zh-format/compare/v1.0.1...v1.1.0) (2026-03-28)
 
 ### Features
