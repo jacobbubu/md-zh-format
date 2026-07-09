@@ -74,6 +74,7 @@ md-zh-format <input.md> [options]
 - `-o, --output <path>`: write output to a target file (single input only).
 - `--check`: check-only mode, exits `1` when files would change.
 - `--normalize-only`: run Prettier + mixed-layout rules, skip heading promotion.
+- `--keep-em-dash`: keep paired Chinese em dashes (`——`) instead of rewriting to `" -- "`.
 - `--print-width <num>`: Prettier `printWidth` (default: `80`).
 - `--prose-wrap <mode>`: Prettier `proseWrap` (`always | never | preserve`, default: `preserve`).
 - `--tab-width <num>`: Prettier `tabWidth` (default: `2`).
@@ -111,7 +112,7 @@ md-zh-format article.md --print-width 100 --prose-wrap always --tab-width 4
 - Spaces between Han and Latin/number boundaries.
 - Spaces between numbers and common units (`10Gbps -> 10 Gbps`).
 - `%` and `°` remain attached to numbers (`15 % -> 15%`).
-- Paired em dashes are normalized to spaced ASCII double hyphen (`甲——乙 -> 甲 -- 乙`).
+- Paired em dashes are normalized to spaced ASCII double hyphen (`甲——乙 -> 甲 -- 乙`); opt out with `--keep-em-dash` (CLI) or `emDash: "keep"` (API).
 - Chinese-context quotes normalized to `“…”` / `‘…’` (including Taiwan-style `「…」` / `『…』`).
 - Chinese-context parentheses normalized with the `English term (中文释义)` exception.
 - Extra spaces around punctuation cleaned up.

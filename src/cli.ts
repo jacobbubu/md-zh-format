@@ -26,6 +26,7 @@ export interface CliOptions {
   outputPath?: string;
   check: boolean;
   normalizeOnly: boolean;
+  keepEmDash: boolean;
   prettier: MarkdownPrettierOptions;
   help: boolean;
   version: boolean;
@@ -74,6 +75,7 @@ function getHelpText(): string {
     "  -o, --output <path>        Write output to a target file (single input only)",
     "      --check                Only check formatting changes (exit 1 if changed)",
     "      --normalize-only       Run Prettier + mixed-layout rules, skip heading promotion",
+    '      --keep-em-dash         Keep paired Chinese em dashes (——) instead of rewriting to " -- "',
     "      --print-width <num>    Prettier printWidth (default: 80)",
     "      --prose-wrap <mode>    Prettier proseWrap (always|never|preserve, default: preserve)",
     "      --tab-width <num>      Prettier tabWidth (default: 2)",
@@ -95,6 +97,7 @@ export function parseCliArgs(argv: string[]): CliOptions {
     write: false,
     check: false,
     normalizeOnly: false,
+    keepEmDash: false,
     prettier: {},
     help: false,
     version: false,
@@ -121,6 +124,9 @@ export function parseCliArgs(argv: string[]): CliOptions {
         break;
       case "--normalize-only":
         options.normalizeOnly = true;
+        break;
+      case "--keep-em-dash":
+        options.keepEmDash = true;
         break;
       case "--print-width": {
         const value = getOptionValue(argv, i, arg);
@@ -192,6 +198,7 @@ export function parseCliArgs(argv: string[]): CliOptions {
 async function formatOneFile(
   inputPath: string,
   normalizeOnly: boolean,
+  keepEmDash: boolean,
   prettierOptions: MarkdownPrettierOptions,
 ): Promise<{ absolutePath: string; original: string; formatted: string }> {
   const absolutePath = path.resolve(inputPath);
@@ -202,6 +209,7 @@ async function formatOneFile(
     await prettifyMarkdownContent(normalizedInput, absolutePath, {
       prettier: prettierOptions,
       promoteHeadings: !normalizeOnly,
+      emDash: keepEmDash ? "keep" : "normalize",
     })
   ).prettifiedContent;
 
@@ -251,6 +259,7 @@ export async function runCli(
       const formatted = await formatOneFile(
         inputPath,
         options.normalizeOnly,
+        options.keepEmDash,
         options.prettier,
       );
       results.push(formatted);

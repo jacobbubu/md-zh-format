@@ -14,4 +14,6 @@ export type {
   PrettifyOptions,
   MarkdownPrettierOptions,
   MarkdownPrettierProseWrap,
+  EmDashMode,
+  ChsEngLayoutOptions,
 } from "./prettify/index.js";
