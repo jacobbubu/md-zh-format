@@ -74,6 +74,7 @@ md-zh-format <input.md> [options]
 - `-o, --output <path>`：输出到目标文件（仅支持单输入文件）。
 - `--check`：仅检查模式，有变更需求时返回 `1`。
 - `--normalize-only`：执行 Prettier + 混排规则，但跳过标题提级。
+- `--keep-em-dash`：保留成对全角破折号“——”，不改写为 `--`。
 - `--print-width <num>`：Prettier `printWidth`（默认 `80`）。
 - `--prose-wrap <mode>`：Prettier `proseWrap`（`always | never | preserve`，默认 `preserve`）。
 - `--tab-width <num>`：Prettier `tabWidth`（默认 `2`）。
@@ -111,7 +112,7 @@ md-zh-format article.md --print-width 100 --prose-wrap always --tab-width 4
 - 中文与英文/数字边界自动补空格。
 - 数字与常见单位补空格（`10Gbps -> 10 Gbps`）。
 - `%` 和 `°` 保持与数字贴合（`15 % -> 15%`）。
-- 成对的全角破折号会规范为带空格的 ASCII 双连字符（`甲——乙 -> 甲 -- 乙`）。
+- 成对的全角破折号会规范为带空格的 ASCII 双连字符（`甲——乙 -> 甲 -- 乙`）；可用 `--keep-em-dash`（CLI）或 `emDash: "keep"`（API）保留“——”。
 - 中文语境引号规范为 `“…”` / `‘…’`（含台式 `「…」` / `『…』`）。
 - 中文语境括号规范化，并保留 `English term (中文释义)` 例外。
 - 清理标点周围多余空格。

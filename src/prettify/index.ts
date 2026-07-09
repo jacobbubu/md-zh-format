@@ -1,7 +1,7 @@
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { format as prettierFormat } from "prettier";
-import { normalizeChsEngLayout } from "./chs-eng-layout.js";
+import { normalizeChsEngLayout, type EmDashMode } from "./chs-eng-layout.js";
 
 export interface FrontmatterData {
   [key: string]: string | undefined;
@@ -27,6 +27,8 @@ export interface PrettifyOptions {
   prettier?: MarkdownPrettierOptions;
   preserveFrontmatter?: boolean;
   promoteHeadings?: boolean;
+  /** Paired em dash handling passed to CJK layout normalization (default: "normalize"). */
+  emDash?: EmDashMode;
 }
 
 export interface PrettifyResult {
@@ -269,7 +271,9 @@ export async function prettifyMarkdownContent(
   const promotedBody = promoteHeadings
     ? promoteHeadingsToH1(prettierBody)
     : prettierBody;
-  const normalizedBody = normalizeChsEngLayout(promotedBody);
+  const normalizedBody = normalizeChsEngLayout(promotedBody, {
+    emDash: options.emDash,
+  });
 
   const formattedBody = ensureTrailingNewline(normalizedBody);
   const prettifiedContent =
@@ -297,3 +301,4 @@ export async function prettifyMarkdownFile(
 }
 
 export { normalizeChsEngLayout } from "./chs-eng-layout.js";
+export type { EmDashMode, ChsEngLayoutOptions } from "./chs-eng-layout.js";

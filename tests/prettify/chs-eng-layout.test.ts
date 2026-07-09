@@ -66,6 +66,18 @@ test("normalizes paired em dashes to spaced ASCII double hyphen", () => {
   );
 });
 
+test("keeps paired em dashes when emDash mode is 'keep'", () => {
+  const input = ["甲——乙", "  ——说明", "结论——", "A——B", "——"].join("\n");
+  const output = normalizeChsEngLayout(input, { emDash: "keep" });
+  assert.equal(output, input);
+
+  // 其余混排规则在 keep 模式下照常生效
+  assert.equal(
+    normalizeChsEngLayout("在Azure中部署3台VM。甲——乙。", { emDash: "keep" }),
+    "在 Azure 中部署 3 台 VM。甲——乙。",
+  );
+});
+
 test("keeps markdown-sensitive segments untouched", () => {
   const input = [
     "请运行 `kubectl get pods`，然后检查输出。",

@@ -52,6 +52,7 @@ test("parse: defaults and basic input", () => {
   assert.equal(parsed.write, false);
   assert.equal(parsed.check, false);
   assert.equal(parsed.normalizeOnly, false);
+  assert.equal(parsed.keepEmDash, false);
   assert.equal(parsed.help, false);
   assert.equal(parsed.version, false);
   assert.deepEqual(parsed.prettier, {});
@@ -78,6 +79,9 @@ test("parse: parses output/write/check/normalize flags", () => {
 
   const checkParsed = parseCliArgs(["a.md", "--check"]);
   assert.equal(checkParsed.check, true);
+
+  const keepParsed = parseCliArgs(["a.md", "--keep-em-dash"]);
+  assert.equal(keepParsed.keepEmDash, true);
 });
 
 test("parse: parses prettier numeric/text options", () => {
@@ -317,6 +321,23 @@ test("run:format: normalize-only skips heading promotion", async () => {
       normalizeOnlyOutput.stdout.join("").startsWith("## 标题\n"),
       true,
     );
+  });
+});
+
+test("run:format: --keep-em-dash preserves paired Chinese em dashes", async () => {
+  await withTempDir(async (dir) => {
+    const inputPath = path.join(dir, "input.md");
+    await fs.writeFile(inputPath, "# 标题\n\n甲——乙，在Azure里。\n", "utf-8");
+
+    const defaultOutput = createBufferIo();
+    assert.equal(await runCli([inputPath], defaultOutput.io), 0);
+    assert.equal(defaultOutput.stdout.join("").includes("甲 -- 乙"), true);
+
+    const keepOutput = createBufferIo();
+    assert.equal(await runCli([inputPath, "--keep-em-dash"], keepOutput.io), 0);
+    const keptText = keepOutput.stdout.join("");
+    assert.equal(keptText.includes("甲——乙"), true);
+    assert.equal(keptText.includes("在 Azure 里"), true);
   });
 });
 

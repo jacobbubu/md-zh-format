@@ -718,23 +718,36 @@ function compressSpaces(line: string): string {
   return `${leading}${content}`.trimEnd();
 }
 
-function normalizeLine(line: string): string {
+export type EmDashMode = "normalize" | "keep";
+
+export interface ChsEngLayoutOptions {
+  /** Paired em dash handling: "normalize" rewrites —— to spaced ASCII " -- "; "keep" leaves —— untouched. */
+  emDash?: EmDashMode;
+}
+
+function normalizeLine(line: string, emDash: EmDashMode): string {
   let normalized = line;
   normalized = normalizeQuotesInChineseContext(normalized);
   normalized = normalizeParenthesesInChineseContext(normalized);
   normalized = normalizePunctuationSpacing(normalized);
   normalized = normalizeMixedSpacing(normalized);
-  normalized = normalizeEmDash(normalized);
+  if (emDash !== "keep") {
+    normalized = normalizeEmDash(normalized);
+  }
   normalized = compressSpaces(normalized);
   return normalized;
 }
 
-export function normalizeChsEngLayout(input: string): string {
+export function normalizeChsEngLayout(
+  input: string,
+  options: ChsEngLayoutOptions = {},
+): string {
+  const emDash = options.emDash ?? "normalize";
   const { text: protectedText, segments } =
     protectMarkdownSensitiveParts(input);
   const normalized = protectedText
     .split("\n")
-    .map((line) => normalizeLine(line))
+    .map((line) => normalizeLine(line, emDash))
     .join("\n")
     .replace(/[ \t]+$/gm, "");
   return restoreProtected(normalized, segments);
