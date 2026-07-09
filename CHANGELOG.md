@@ -1,3 +1,9 @@
+## [1.3.0](https://github.com/jacobbubu/md-zh-format/compare/v1.2.0...v1.3.0) (2026-07-09)
+
+### Features
+
+- **cli:** add --keep-em-dash to preserve paired Chinese em dashes ([#3](https://github.com/jacobbubu/md-zh-format/issues/3)) ([be36be6](https://github.com/jacobbubu/md-zh-format/commit/be36be61997b6c56309cb90445259b47815a7f01))
+
 ## [1.2.0](https://github.com/jacobbubu/md-zh-format/compare/v1.1.0...v1.2.0) (2026-04-17)
 
 ### Features
