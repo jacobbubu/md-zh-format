@@ -109,7 +109,7 @@ md-zh-format article.md --print-width 100 --prose-wrap always --tab-width 4
 
 ## 会改哪些内容
 
-- 中文与英文/数字边界自动补空格。
+- 中文与英文/数字边界自动补空格，包括 Markdown 链接的可见文字及其相邻正文。
 - 数字与常见单位补空格（`10Gbps -> 10 Gbps`）。
 - `%` 和 `°` 保持与数字贴合（`15 % -> 15%`）。
 - 成对的全角破折号会规范为带空格的 ASCII 双连字符（`甲——乙 -> 甲 -- 乙`）；可用 `--keep-em-dash`（CLI）或 `emDash: "keep"`（API）保留“——”。
@@ -129,7 +129,7 @@ md-zh-format article.md --print-width 100 --prose-wrap always --tab-width 4
 - 受保护的 Markdown 片段不会被混排规则破坏：
   - 围栏/缩进代码块
   - 行内代码
-  - 链接/图片
+  - 链接目标、链接标题和图片（链接可见文字仍参与中英混排）
   - URL 和 GFM 自动链接字面量
   - HTML 标签 / CommonMark HTML 块
   - 数学公式

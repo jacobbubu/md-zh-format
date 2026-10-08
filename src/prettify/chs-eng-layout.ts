@@ -5,6 +5,8 @@ import remarkParse from "remark-parse";
 const HAN_SCRIPT_PATTERN = "\\p{Script=Han}";
 const UNICODE_PUNCTUATION_PATTERN = "\\p{P}";
 const CJK_RE = new RegExp(HAN_SCRIPT_PATTERN, "u");
+const SINGLE_HAN_RE = new RegExp(`^${HAN_SCRIPT_PATTERN}$`, "u");
+const SINGLE_ASCII_ALNUM_RE = /^[A-Za-z0-9]$/u;
 const CJK_TO_ALNUM_RE = new RegExp(
   `(${HAN_SCRIPT_PATTERN})([A-Za-z0-9])`,
   "gu",
@@ -73,6 +75,7 @@ interface MarkdownNodePosition {
 
 interface MarkdownAstNode {
   type?: string;
+  value?: string;
   position?: MarkdownNodePosition;
   children?: MarkdownAstNode[];
 }
@@ -164,6 +167,168 @@ function collectTextNodeRanges(
   for (const child of node.children) {
     collectTextNodeRanges(child, ranges);
   }
+}
+
+function isMarkdownLinkNode(node: MarkdownAstNode, input: string): boolean {
+  if (node.type !== "link" && node.type !== "linkReference") {
+    return false;
+  }
+
+  const start = node.position?.start?.offset;
+  return typeof start === "number" && input[start] === "[";
+}
+
+function collectMarkdownLinkNodes(
+  node: MarkdownAstNode,
+  input: string,
+  links: MarkdownAstNode[],
+): void {
+  if (isMarkdownLinkNode(node, input)) {
+    links.push(node);
+    return;
+  }
+
+  if (!Array.isArray(node.children)) {
+    return;
+  }
+
+  for (const child of node.children) {
+    collectMarkdownLinkNodes(child, input, links);
+  }
+}
+
+function collectLinkTextNodeRanges(
+  node: MarkdownAstNode,
+  ranges: OffsetRange[],
+): void {
+  if (node.type === "text") {
+    addNodeRange(node, ranges);
+    return;
+  }
+
+  if (
+    node.type === "image" ||
+    node.type === "imageReference" ||
+    node.type === "inlineCode" ||
+    node.type === "html"
+  ) {
+    return;
+  }
+
+  if (!Array.isArray(node.children)) {
+    return;
+  }
+
+  for (const child of node.children) {
+    collectLinkTextNodeRanges(child, ranges);
+  }
+}
+
+function findVisibleLinkCharacter(
+  node: MarkdownAstNode,
+  direction: "first" | "last",
+): string | undefined {
+  if (node.type === "text") {
+    const value = node.value ?? "";
+    const visibleCharacters = Array.from(value);
+    return direction === "first"
+      ? visibleCharacters[0]
+      : visibleCharacters[visibleCharacters.length - 1];
+  }
+
+  if (
+    node.type === "image" ||
+    node.type === "imageReference" ||
+    node.type === "inlineCode" ||
+    node.type === "html" ||
+    !Array.isArray(node.children)
+  ) {
+    return undefined;
+  }
+
+  const children =
+    direction === "first" ? node.children : [...node.children].reverse();
+  for (const child of children) {
+    const character = findVisibleLinkCharacter(child, direction);
+    if (character !== undefined) {
+      return character;
+    }
+  }
+
+  return undefined;
+}
+
+function needsMixedLanguageSpace(
+  before: string | undefined,
+  after: string | undefined,
+): boolean {
+  if (before === undefined || after === undefined) {
+    return false;
+  }
+  return (
+    (SINGLE_HAN_RE.test(before) && SINGLE_ASCII_ALNUM_RE.test(after)) ||
+    (SINGLE_ASCII_ALNUM_RE.test(before) && SINGLE_HAN_RE.test(after))
+  );
+}
+
+function collectInlineBoundaryOffsets(
+  node: MarkdownAstNode,
+  input: string,
+  offsets: Set<number>,
+): void {
+  if (
+    node.type === "image" ||
+    node.type === "imageReference" ||
+    node.type === "inlineCode" ||
+    node.type === "html" ||
+    !Array.isArray(node.children)
+  ) {
+    return;
+  }
+
+  for (let index = 1; index < node.children.length; index += 1) {
+    const previous = node.children[index - 1];
+    const current = node.children[index];
+    const previousEnd = previous.position?.end?.offset;
+    const currentStart = current.position?.start?.offset;
+    if (typeof previousEnd !== "number" || typeof currentStart !== "number") {
+      continue;
+    }
+
+    const sourceBetween = input.slice(previousEnd, currentStart);
+    if (
+      !/\s/u.test(sourceBetween) &&
+      needsMixedLanguageSpace(
+        findVisibleLinkCharacter(previous, "last"),
+        findVisibleLinkCharacter(current, "first"),
+      )
+    ) {
+      offsets.add(currentStart);
+    }
+  }
+
+  for (const child of node.children) {
+    collectInlineBoundaryOffsets(child, input, offsets);
+  }
+}
+
+function characterBefore(input: string, offset: number): string | undefined {
+  return input.slice(0, offset).match(/[\s\S]$/u)?.[0];
+}
+
+function characterAfter(input: string, offset: number): string | undefined {
+  return input.slice(offset).match(/^[\s\S]/u)?.[0];
+}
+
+function insertAtOffsets(input: string, offsets: Set<number>): string {
+  const descendingOffsets = [...offsets].sort((a, b) => b - a);
+  let output = input;
+
+  for (const offset of descendingOffsets) {
+    output = `${output.slice(0, offset)} ${output.slice(offset)}`;
+  }
+
+  return output;
 }
 
 function mergeOffsetRanges(ranges: OffsetRange[]): OffsetRange[] {
@@ -738,13 +903,91 @@ function normalizeLine(line: string, emDash: EmDashMode): string {
   return normalized;
 }
 
+function normalizeInlineText(text: string, emDash: EmDashMode): string {
+  let normalized = text;
+  normalized = normalizeQuotesInChineseContext(normalized);
+  normalized = normalizeParenthesesInChineseContext(normalized);
+  normalized = normalizePunctuationSpacing(normalized);
+  normalized = normalizeMixedSpacing(normalized);
+  if (emDash !== "keep") {
+    normalized = normalizeEmDash(normalized);
+  }
+  return normalized.replace(/ {2,}/g, " ");
+}
+
+function normalizeMarkdownLinkLabels(
+  input: string,
+  emDash: EmDashMode,
+): string {
+  const ast = parseMarkdownAst(input);
+  if (!ast) {
+    return input;
+  }
+
+  const links: MarkdownAstNode[] = [];
+  collectMarkdownLinkNodes(ast, input, links);
+
+  const textRanges: OffsetRange[] = [];
+  for (const link of links) {
+    collectLinkTextNodeRanges(link, textRanges);
+  }
+
+  return transformByOffsetRanges(
+    input,
+    mergeOffsetRanges(textRanges),
+    (segment) => normalizeInlineText(segment, emDash),
+  );
+}
+
+function normalizeMarkdownLinkBoundaries(input: string): string {
+  const ast = parseMarkdownAst(input);
+  if (!ast) {
+    return input;
+  }
+
+  const links: MarkdownAstNode[] = [];
+  collectMarkdownLinkNodes(ast, input, links);
+  const insertionOffsets = new Set<number>();
+
+  for (const link of links) {
+    const start = link.position?.start?.offset;
+    const end = link.position?.end?.offset;
+    if (typeof start !== "number" || typeof end !== "number") {
+      continue;
+    }
+
+    const firstVisible = findVisibleLinkCharacter(link, "first");
+    const lastVisible = findVisibleLinkCharacter(link, "last");
+    const before = characterBefore(input, start);
+    const after = characterAfter(input, end);
+
+    if (needsMixedLanguageSpace(before, firstVisible)) {
+      insertionOffsets.add(start);
+    }
+
+    if (needsMixedLanguageSpace(lastVisible, after)) {
+      insertionOffsets.add(end);
+    }
+
+    collectInlineBoundaryOffsets(link, input, insertionOffsets);
+  }
+
+  return insertAtOffsets(input, insertionOffsets);
+}
+
+function normalizeMarkdownLinks(input: string, emDash: EmDashMode): string {
+  const normalizedLabels = normalizeMarkdownLinkLabels(input, emDash);
+  return normalizeMarkdownLinkBoundaries(normalizedLabels);
+}
+
 export function normalizeChsEngLayout(
   input: string,
   options: ChsEngLayoutOptions = {},
 ): string {
   const emDash = options.emDash ?? "normalize";
+  const linkNormalizedInput = normalizeMarkdownLinks(input, emDash);
   const { text: protectedText, segments } =
-    protectMarkdownSensitiveParts(input);
+    protectMarkdownSensitiveParts(linkNormalizedInput);
   const normalized = protectedText
     .split("\n")
     .map((line) => normalizeLine(line, emDash))
