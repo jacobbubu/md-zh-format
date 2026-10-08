@@ -1,3 +1,9 @@
+## [1.3.1](https://github.com/jacobbubu/md-zh-format/compare/v1.3.0...v1.3.1) (2026-10-08)
+
+### Bug Fixes
+
+- **prettify:** format spacing around Markdown links ([#6](https://github.com/jacobbubu/md-zh-format/issues/6)) ([3e8f2ad](https://github.com/jacobbubu/md-zh-format/commit/3e8f2ad72a22656fc1629f919b8110de4a079cfd))
+
 ## [1.3.0](https://github.com/jacobbubu/md-zh-format/compare/v1.2.0...v1.3.0) (2026-07-09)
 
 ### Features

@@ -1,6 +1,6 @@
 {
   "name": "@jacobbubu/md-zh-format",
-  "version": "1.3.0",
+  "version": "1.3.1",
   "description": "Prettify Markdown content for Chinese-English mixed typography",
   "repository": {
     "type": "git",
