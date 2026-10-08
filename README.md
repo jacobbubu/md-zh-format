@@ -109,7 +109,7 @@ md-zh-format article.md --print-width 100 --prose-wrap always --tab-width 4
 
 ## What Gets Changed
 
-- Spaces between Han and Latin/number boundaries.
+- Spaces between Han and Latin/number boundaries, including Markdown link labels and their surrounding text.
 - Spaces between numbers and common units (`10Gbps -> 10 Gbps`).
 - `%` and `°` remain attached to numbers (`15 % -> 15%`).
 - Paired em dashes are normalized to spaced ASCII double hyphen (`甲——乙 -> 甲 -- 乙`); opt out with `--keep-em-dash` (CLI) or `emDash: "keep"` (API).
@@ -129,7 +129,7 @@ md-zh-format article.md --print-width 100 --prose-wrap always --tab-width 4
 - Markdown-sensitive segments are protected:
   - fenced/indented code blocks
   - inline code
-  - links/images
+  - link destinations/titles and images (visible link labels still participate in mixed-language spacing)
   - URLs and GFM autolink literals
   - HTML tags / CommonMark HTML blocks
   - math expressions

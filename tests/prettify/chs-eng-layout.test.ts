@@ -109,6 +109,97 @@ test("keeps markdown-sensitive segments untouched", () => {
   assert.equal(output.includes('const range = "甲——乙";'), true);
 });
 
+test("adds mixed-language spacing around Markdown links in paragraphs, quotes, and lists", () => {
+  const input = [
+    "[ChrisFirst](https://example.com)在 Twitter 上分享",
+    "> 收到了[Bethesda](https://example.com)的通知",
+    "- 项目来自[Maurice Heumann](https://example.com)，",
+  ].join("\n");
+
+  assert.equal(
+    normalizeChsEngLayout(input),
+    [
+      "[ChrisFirst](https://example.com) 在 Twitter 上分享",
+      "> 收到了 [Bethesda](https://example.com) 的通知",
+      "- 项目来自 [Maurice Heumann](https://example.com)，",
+    ].join("\n"),
+  );
+});
+
+test("formats visible link labels while preserving destinations, titles, and references", () => {
+  const destination = "https://example.com/a?token=$s_!Sudo!,f_auto&q=中文";
+  const input = [
+    `收到了[**Bethesda**](${destination} "原始 Title")的通知`,
+    "查看[中文English][mixed]说明",
+    "项目来自[Maurice Heumann][person]，",
+    "",
+    `[mixed]: ${destination} "链接 Title"`,
+    "[person]: https://example.com/people/maurice?from=中文",
+  ].join("\n");
+
+  const output = normalizeChsEngLayout(input);
+  assert.equal(
+    output,
+    [
+      `收到了 [**Bethesda**](${destination} "原始 Title") 的通知`,
+      "查看[中文 English][mixed] 说明",
+      "项目来自 [Maurice Heumann][person]，",
+      "",
+      `[mixed]: ${destination} "链接 Title"`,
+      "[person]: https://example.com/people/maurice?from=中文",
+    ].join("\n"),
+  );
+  assert.equal(output.includes(destination), true);
+});
+
+test("formats mixed-language boundaries across inline markup inside link labels", () => {
+  const input =
+    "查看[中文**English**说明和*Product*文档](https://example.com)即可";
+  const output = normalizeChsEngLayout(input);
+
+  assert.equal(
+    output,
+    "查看[中文 **English** 说明和 *Product* 文档](https://example.com)即可",
+  );
+});
+
+test("does not add spaces before Chinese punctuation after English links", () => {
+  const punctuation = ["，", "。", "；", "：", "！", "？"];
+  const input = punctuation
+    .map((mark) => `[Example](https://example.com)${mark}`)
+    .join("\n");
+
+  assert.equal(normalizeChsEngLayout(input), input);
+});
+
+test("keeps existing spaces, Chinese links, images, and code unchanged", () => {
+  const input = [
+    "已有 [ChrisFirst](https://example.com) 空格。",
+    "查看[详情](https://example.com)即可",
+    "中文[ English](https://example.com) 中文和中文 [English ](https://example.com)中文",
+    "![中文English](assets/image.png)",
+    "[![](assets/image.png)](https://example.com)正文",
+    "`[ChrisFirst](https://example.com)在`",
+    "",
+    "```md",
+    "[ChrisFirst](https://example.com)在",
+    "```",
+  ].join("\n");
+
+  assert.equal(normalizeChsEngLayout(input), input);
+});
+
+test("normalizing Markdown link spacing is idempotent", () => {
+  const input = [
+    "收到了[Bethesda](https://example.com)的通知",
+    "查看[中文English](https://example.com)说明",
+  ].join("\n");
+  const once = normalizeChsEngLayout(input);
+  const twice = normalizeChsEngLayout(once);
+
+  assert.equal(twice, once);
+});
+
 test("keeps inline and block math expressions untouched", () => {
   const input = [
     "由质能方程$E=mc^2$可知，质量和能量可以相互转化。",
